@@ -1,6 +1,6 @@
 from simulator import AccountSimulator
 from datetime import date, timedelta, datetime
-from market import Market
+from market import Market, EmptyDataError
 from pandas.tseries.offsets import BDay
 import sys
 
@@ -10,25 +10,30 @@ class MyAccountSimulator(AccountSimulator):
         self.ticker = tickers
         self.tickers_to_sell = {}  # ticker -> price
         self.tickers_to_buy = {}   # ticker -> price
+        self.data_available = True # May be False for holidays (2.04.21, for example)
 
     def __get_suitable_tickers(self, date, market):
         yesterday = date - BDay(1)
 
         self.tickers_to_sell = {}
         self.tickers_to_buy = {}
+        self.data_available = True
 
         for ticker in self.ticker:
-            yesterday_high = market.get_high_day_price(ticker, yesterday)
-            yesterday_low = market.get_low_day_price(ticker, yesterday)
-            yesterday_open = market.get_open_day_price(ticker, yesterday)
-            yesterday_close = market.get_close_day_price(ticker, yesterday)
-            range = yesterday_high - yesterday_low
+            try:
+                yesterday_high = market.get_high_day_price(ticker, yesterday)
+                yesterday_low = market.get_low_day_price(ticker, yesterday)
+                yesterday_open = market.get_open_day_price(ticker, yesterday)
+                yesterday_close = market.get_close_day_price(ticker, yesterday)
+                range = yesterday_high - yesterday_low
 
-            if (yesterday_open <= 0.2 * range + yesterday_low) and (yesterday_close >= 0.8 * range + yesterday_low): # sell today
-                if self.get_quantity(ticker) > 0:
-                    self.tickers_to_sell[ticker] = yesterday_close
-            elif (yesterday_close <= 0.2 * range + yesterday_low) and (yesterday_open >= 0.8 * range + yesterday_low): # buy today
-                self.tickers_to_buy[ticker] = yesterday_close
+                if (yesterday_open <= 0.2 * range + yesterday_low) and (yesterday_close >= 0.8 * range + yesterday_low): # sell today
+                    if self.get_quantity(ticker) > 0:
+                        self.tickers_to_sell[ticker] = yesterday_close
+                elif (yesterday_close <= 0.2 * range + yesterday_low) and (yesterday_open >= 0.8 * range + yesterday_low): # buy today
+                    self.tickers_to_buy[ticker] = yesterday_close
+            except EmptyDataError:
+                self.data_available = False
 
     def check_and_buy(self, market):
         tickers_to_del = []
@@ -72,6 +77,9 @@ class MyAccountSimulator(AccountSimulator):
         # new day => define tickers that fit the 80-20 condition
         if date.hour == 9 and date.minute == 30:
             self.__get_suitable_tickers(date, market)
+            return
+
+        if not self.data_available:
             return
 
         self.check_and_buy(market)
