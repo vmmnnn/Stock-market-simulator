@@ -6,6 +6,16 @@ import sys
 import pytz
 
 
+class SimulatorError(Exception):
+    pass
+
+class NotEnoughMoneyError(SimulatorError):
+    pass
+
+class NotEnoughStocksError(SimulatorError):
+    pass
+
+
 class AccountSimulator:
     # algorithm will decide what to buy and to sell and when
     def __init__(self, start_funds):
@@ -91,15 +101,8 @@ class AccountSimulator:
 
         price = self.__market.get_current_price(ticker)
 
-        if price == None or price == -1:
-            print(f"No data available for {ticker} for {self.__date}", file = self.__file)
-            print("Buy operation cannot be completed", file = self.__file) # or exception?
-            return
-
         if self.__money < price * n:
-            print(f"Not enough money to buy {n} x {ticker} for {price:.2f}", file = self.__file)
-            print("Buy operation cannot be completed", file = self.__file) # or exception?
-            return
+            raise NotEnoughMoneyError()
 
         self.__money -= price * n
         self.__add_to_history(ticker, 'buy', n, price)
@@ -116,20 +119,12 @@ class AccountSimulator:
             return
 
         if not ticker in self.__stocks.keys():
-            print(f"There are no stocks with ticker {ticker}", file = self.__file)
-            print("Sell operation cannot be completed", file = self.__file) # or exception?
-            return
+            raise NotEnoughStocksError()
 
         if self.__stocks[ticker].get_quantity() < n:
-            print(f"There are not enough {ticker} stocks", file = self.__file)
-            print("Sell operation cannot be completed", file = self.__file) # or exception?
-            return
+            raise NotEnoughStocksError()
 
         price = self.__market.get_current_price(ticker)
-        if price == None or price == -1:
-            print(f"No data available for {ticker} for {self.__date}", file = self.__file)
-            print("Sell operation cannot be completed", file = self.__file) # or exception?
-            return
 
         self.__money += price * n
         self.__add_to_history(ticker, 'sell', n, price)
