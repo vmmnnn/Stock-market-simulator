@@ -180,8 +180,6 @@ class AccountSimulator:
             self.__file = sys.stdout
 
         self.__date = start_date
-        self.__date = pytz.timezone("America/New_York").localize(self.__date)
-        end_date = pytz.timezone("America/New_York").localize(end_date)
         while self.__date < end_date:
             self.__upd_date()
             self.__market = Market(self.__date)

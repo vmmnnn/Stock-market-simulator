@@ -1,6 +1,26 @@
 from datetime import date, datetime, timedelta
 import pandas as pd
 import yfinance as yf
+from functools import lru_cache
+
+# download all data available
+# valid intervals: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo
+@lru_cache(maxsize=500)
+def get_data(ticker, interval):
+    if interval in ["1d", "5d", "1wk", "1mo", "3mo"]:
+        return yf.download(ticker, interval=interval, period="max")
+
+    if interval == "1m":
+        delta = timedelta(days=7)
+    elif interval in ["2m", "5m", "15m", "30m", "90m"]:
+        delta = timedelta(days=59)
+    else:          # interval in ["60m", "1h"]
+        delta = timedelta(days=729)
+
+    start_period = datetime.now() - delta
+    return yf.download(ticker, interval=interval, start=start_period)
+
+
 
 # market for a particular date
 class Market:
@@ -40,17 +60,15 @@ class Market:
         return "1d"
 
 
-    # valid intervals: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo
     # get data for the period
     def get_data(self, ticker, start_date, end_date, interval):
         if end_date > self.__date or start_date > end_date:
             return pd.DataFrame()   # or exception?
         if not self.__check_interval_requirements(interval, start_date):
             return pd.DataFrame()
-        data = yf.Ticker(ticker).history(start=start_date, end=end_date, interval=interval)
-        if data.empty:
-            return data
-        return data
+        data = get_data(ticker, interval)
+
+        return data.loc[start_date : end_date]
 
 
     def get_stock_data(self, ticker):
@@ -92,26 +110,21 @@ class Market:
 
         delta = self.__get_cur_time_diff(date)
         if date.minute == 30 or delta.days > 60:
-            idx = date.hour - 9
             interval = "1h"
         else:
-            if date.minute == 0 or date.minute < 30:
-                idx = 2 * (date.hour - 9) - 1
-            else:
-                idx = 2 * (date.hour - 9)
             interval = "30m"
 
         if not self.__check_interval_requirements(interval, date):
             return -1
-
-        data = yf.Ticker(ticker).history(start=date, end=date+timedelta(days=1), interval=interval)
+             
+        data = get_data(ticker, interval)
         if data.empty:
             return -1
 
-        if idx >= data.shape[0]:
-            return -1
+        if not pd.Timestamp(date) in data.index:   # holiday, for example on 02.04.21 market finished working earlier
+            return data['Open'].iloc[len(data.index) - 1]
 
-        return data['Open'].iloc[idx]
+        return data['Open'].loc[pd.Timestamp(date)]
 
 
     # returns the price of the current market date
