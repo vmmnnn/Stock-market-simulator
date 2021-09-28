@@ -1,7 +1,8 @@
 from datetime import date, timedelta
 import yfinance as yf
 from stock import Stock
-from market import Market
+from market import Market, EmptyDataError
+from pandas.tseries.offsets import BDay
 import sys
 import pytz
 
@@ -158,6 +159,11 @@ class AccountSimulator:
         else:
             self.__date = self.__date + timedelta(hours=1)
 
+    def __skip_day(self):
+        self.__date = self.__date + BDay(1)
+        self.__date = self.__date.replace(hour = 9, minute = 30)
+
+
     def algorithm(self):
         print(f"     {self.__date}: hour is over")
         print(f"portfolio costs {self.get_portfolio_cost():.2f} = {self.get_free_money():.2f} free money left + {self.get_active_money():.2f} stocks cost in total")
@@ -178,6 +184,9 @@ class AccountSimulator:
         while self.__date < end_date:
             self.__upd_date()
             self.__market = Market(self.__date)
-            self.algorithm()
+            try:
+                self.algorithm()
+            except EmptyDataError:
+                self.__skip_day()
 
         self.__file.close()
