@@ -6,7 +6,7 @@ from pandas.tseries.offsets import BDay
 
 class Algorithm8020(AccountSimulator):
     def __init__(self, start_money, tickers, file_name):
-        super(MyAccountSimulator, self).__init__(start_money)
+        super(Algorithm8020, self).__init__(start_money)
         self.__tickers = tickers
         self.__tickers_to_sell = {}  # ticker -> price
         self.__tickers_to_buy = {}   # ticker -> price
