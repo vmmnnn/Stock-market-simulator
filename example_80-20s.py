@@ -2,7 +2,7 @@ from simulator import AccountSimulator
 from datetime import date, timedelta, datetime
 from market import Market
 from pandas.tseries.offsets import BDay
-import sys
+
 
 class MyAccountSimulator(AccountSimulator):
     def __init__(self, start_money, tickers):
@@ -49,17 +49,6 @@ class MyAccountSimulator(AccountSimulator):
         for ticker in tickers_to_del:
             del self.tickers_to_sell[ticker]
 
-    def print_day_results(self, date):
-        print()
-        print(f"      {date.strftime('%Y-%m-%d')}: day is over")
-        print(f"portfolio costs {self.get_portfolio_cost():.2f} = {self.get_free_money():.2f} free money left + {self.get_active_money():.2f} stocks cost in total")
-        print("  portfolio:")
-        self.print_stocks()
-        print("  history:")
-        self.print_operations_history()
-        print()
-        sys.stdout.flush()
-
     # 80-20's algorithm:
     # If ('Open' of the day is in the lowest 20% of the range of this day) and
     #    ('Close' of the day is in the highest 80% of the range of this day) then
@@ -78,7 +67,7 @@ class MyAccountSimulator(AccountSimulator):
         self.check_and_sell(market)
 
         if date.hour == 15 and date.minute == 30:
-            self.print_day_results(date)
+            self.print_day_results()
 
 
 start_date = datetime(year=2021, month=3, day=4)

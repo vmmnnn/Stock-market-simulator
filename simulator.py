@@ -164,6 +164,18 @@ class AccountSimulator:
         self.__date = self.__date.replace(hour = 9, minute = 30)
 
 
+    def print_day_results(self):
+        print()
+        print(f"      {self.__date.strftime('%Y-%m-%d')}: day is over")
+        print(f"portfolio costs {self.get_portfolio_cost():.2f} = {self.get_free_money():.2f} free money left + {self.get_active_money():.2f} stocks cost in total")
+        print("  portfolio:")
+        self.print_stocks()
+        print("  history:")
+        self.print_operations_history()
+        print()
+        sys.stdout.flush()
+
+
     def algorithm(self):
         print(f"     {self.__date}: hour is over")
         print(f"portfolio costs {self.get_portfolio_cost():.2f} = {self.get_free_money():.2f} free money left + {self.get_active_money():.2f} stocks cost in total")
