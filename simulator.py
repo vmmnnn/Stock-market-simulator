@@ -7,16 +7,6 @@ import sys
 import pytz
 
 
-class SimulatorError(Exception):
-    pass
-
-class NotEnoughMoneyError(SimulatorError):
-    pass
-
-class NotEnoughStocksError(SimulatorError):
-    pass
-
-
 class AccountSimulator:
     # algorithm will decide what to buy and to sell and when
     def __init__(self, start_funds):
@@ -103,7 +93,9 @@ class AccountSimulator:
         price = self.__market.get_current_price(ticker)
 
         if self.__money < price * n:
-            raise NotEnoughMoneyError()
+            print(f"WARNING: not enough money to buy {n} {ticker} stocks ${price} each")
+            print(f"No {ticker} stocks bought")
+            return
 
         self.__money -= price * n
         self.__add_to_history(ticker, 'buy', n, price)
@@ -120,10 +112,15 @@ class AccountSimulator:
             return
 
         if not ticker in self.__stocks.keys():
-            raise NotEnoughStocksError()
+            print(f"WARNING: no {ticker} stocks are available for selling")
+            print(f"No {ticker} stocks sold")
+            return
 
-        if self.__stocks[ticker].get_quantity() < n:
-            raise NotEnoughStocksError()
+        n_stocks_available = self.__stocks[ticker].get_quantity()
+        if n_stocks_available < n:
+            print(f"WARNING: {n_stocks_available} {ticker} stocks out of {n} requested are available for selling")
+            print(f"No {ticker} stocks sold")
+            return
 
         price = self.__market.get_current_price(ticker)
 
