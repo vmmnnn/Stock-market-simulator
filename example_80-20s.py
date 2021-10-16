@@ -4,7 +4,7 @@ from market import Market
 from pandas.tseries.offsets import BDay
 
 
-class MyAccountSimulator(AccountSimulator):
+class Algorithm8020(AccountSimulator):
     def __init__(self, start_money, tickers, file_name):
         super(MyAccountSimulator, self).__init__(start_money)
         self.__tickers = tickers
@@ -12,6 +12,7 @@ class MyAccountSimulator(AccountSimulator):
         self.__tickers_to_buy = {}   # ticker -> price
         self.__file = open(file_name, "w")
 
+    # get stocks that complies with algorithm conditions
     def __get_suitable_tickers(self, date, market):
         yesterday = date - BDay(1)
 
@@ -34,19 +35,23 @@ class MyAccountSimulator(AccountSimulator):
     def check_and_buy(self, market):
         tickers_to_del = []
         for ticker in self.__tickers_to_buy.keys():
+            # buy as soon as we reach yesterday's price
             if market.get_current_price(ticker) <= self.__tickers_to_buy[ticker]:
                 self.buy(ticker, 1)
                 tickers_to_del.append(ticker)
+        # remove tickers that have been already bought
         for ticker in tickers_to_del:
             del self.__tickers_to_buy[ticker]
 
     def check_and_sell(self, market):
         tickers_to_del = []
         for ticker in self.__tickers_to_sell.keys():
+            # sell as soon as we reach yesterday's price
             if market.get_current_price(ticker) >= self.__tickers_to_sell[ticker]:
                 n = self.get_quantity(ticker)
                 self.sell(ticker, n)
                 tickers_to_del.append(ticker)
+        # remove tickers that have been already sold
         for ticker in tickers_to_del:
             del self.__tickers_to_sell[ticker]
 
@@ -80,5 +85,5 @@ end_date = datetime(year=2021, month=6, day=5)
 file_name = "run_80_20" + start_date.strftime('%Y-%m-%d_%H-%M-%S') + "_" + end_date.strftime('%Y-%m-%d_%H-%M-%S') + "_" + str(datetime.now().strftime('%Y-%m-%d_%H-%M-%S')) + ".txt"
 
 tickers = ['IDCC', 'SAP', 'SBUX', 'SGEN']
-ms = MyAccountSimulator(1000, tickers, file_name)
+ms = Algorithm8020(1000, tickers, file_name)
 ms.run(start_date, end_date)
