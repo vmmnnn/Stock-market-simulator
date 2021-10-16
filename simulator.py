@@ -7,6 +7,13 @@ import sys
 import pytz
 
 
+class SimulatorError(Exception):
+    pass
+
+class InvalidInterval(SimulatorError):
+    pass
+
+
 class AccountSimulator:
     # algorithm will decide what to buy and to sell and when
     def __init__(self, start_funds):
@@ -15,6 +22,8 @@ class AccountSimulator:
         self.__stocks = {}    # ticker -> Stock(ticker)
         self.__history = {}   # ticker -> [(date, 'buy'/'sell', quantity, price)]
         self.__date = None    # will be set during run
+        self.__start_date = None
+        self.__end_date = None
         self.__market = None  # will be set according to the date
 
 
@@ -44,6 +53,10 @@ class AccountSimulator:
         return self.__history[ticker]
     def get_date(self):
         return self.__date
+    def get_start_date(self):
+        return self.__start_date
+    def get_end_date(self):
+        return self.__end_date
     def get_market(self):
         return self.__market
     def get_quantity(self, ticker):
@@ -55,27 +68,27 @@ class AccountSimulator:
     def set_algorithm(self, new_algorithm):
         self.__algorithm = new_algorithm
 
-    def print_operations_history(self):
+    def print_operations_history(self, file):
         keys = self.__history.keys()
         if len(keys) == 0:
-            print("no history")
+            file.write("no history\n")
         else:
             for ticker in keys:
-                self.print_ticker_operation_history(ticker)
-    def print_ticker_operation_history(self, ticker):
+                self.print_ticker_operation_history(ticker, file)
+    def print_ticker_operation_history(self, ticker, file):
         ticker_history = self.__history[ticker]
-        print(ticker + ":")
+        file.write(ticker + ":\n")
         for event in ticker_history:
-            print(f"{event[0]}: {event[1]} {event[2]} stock(s) for {event[3]:.2f} each")
-    def print_stocks(self):
+            file.write(f"{event[0]}: {event[1]} {event[2]} stock(s) for {event[3]:.2f} each\n")
+    def print_stocks(self, file):
         keys = self.__stocks.keys()
         if len(keys) == 0:
-            print("no stocks")
+            file.write("no stocks\n")
         else:
             for ticker in keys:
                 n = self.__stocks[ticker].get_quantity()
                 if n != 0:
-                    print(f"{ticker}: {n}")
+                    file.write(f"{ticker}: {n}\n")
 
 
     def __add_to_history(self, ticker, event, n, price):
@@ -93,8 +106,8 @@ class AccountSimulator:
         price = self.__market.get_current_price(ticker)
 
         if self.__money < price * n:
-            print(f"WARNING: not enough money to buy {n} {ticker} stocks ${price} each")
-            print(f"No {ticker} stocks bought")
+            print(f"WARNING: not enough money to buy {n} {ticker} stocks ${price} each", file=sys.stderr)
+            print(f"No {ticker} stocks bought", file=sys.stderr)
             return
 
         self.__money -= price * n
@@ -112,14 +125,14 @@ class AccountSimulator:
             return
 
         if not ticker in self.__stocks.keys():
-            print(f"WARNING: no {ticker} stocks are available for selling")
-            print(f"No {ticker} stocks sold")
+            print(f"WARNING: no {ticker} stocks are available for selling", file=sys.stderr)
+            print(f"No {ticker} stocks sold", file=sys.stderr)
             return
 
         n_stocks_available = self.__stocks[ticker].get_quantity()
         if n_stocks_available < n:
-            print(f"WARNING: {n_stocks_available} {ticker} stocks out of {n} requested are available for selling")
-            print(f"No {ticker} stocks sold")
+            print(f"WARNING: {n_stocks_available} {ticker} stocks out of {n} requested are available for selling", file=sys.stderr)
+            print(f"No {ticker} stocks sold", file=sys.stderr)
             return
 
         price = self.__market.get_current_price(ticker)
@@ -161,16 +174,15 @@ class AccountSimulator:
         self.__date = self.__date.replace(hour = 9, minute = 30)
 
 
-    def print_day_results(self):
-        print()
-        print(f"      {self.__date.strftime('%Y-%m-%d')}: day is over")
-        print(f"portfolio costs {self.get_portfolio_cost():.2f} = {self.get_free_money():.2f} free money left + {self.get_active_money():.2f} stocks cost in total")
-        print("  portfolio:")
-        self.print_stocks()
-        print("  history:")
-        self.print_operations_history()
-        print()
-        sys.stdout.flush()
+    def print_day_results(self, file):
+        file.write("\n")
+        file.write(f"      {self.__date.strftime('%Y-%m-%d')}: day is over\n")
+        file.write(f"portfolio costs {self.get_portfolio_cost():.2f} = {self.get_free_money():.2f} free money left + {self.get_active_money():.2f} stocks cost in total\n")
+        file.write("  portfolio:\n")
+        self.print_stocks(file)
+        file.write("  history:\n")
+        self.print_operations_history(file)
+        file.write("\n")
 
 
     def algorithm(self):
@@ -183,13 +195,13 @@ class AccountSimulator:
         print()
 
     # run hours from start_date up to end_date exclusively
-    def run(self, start_date, end_date, file_name = ""):
-        if file_name != "":
-            self.__file = open(file_name, 'w')
-        else:
-            self.__file = sys.stdout
+    def run(self, start_date, end_date):
+        if end_date <= start_date:
+            raise InvalidInterval()
 
         self.__date = start_date
+        self.__start_date = start_date
+        self.__end_date = end_date
         while self.__date < end_date:
             self.__upd_date()
             self.__market = Market(self.__date)
@@ -197,5 +209,3 @@ class AccountSimulator:
                 self.algorithm()
             except EmptyDataError:
                 self.__skip_day()
-
-        self.__file.close()

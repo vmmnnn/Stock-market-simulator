@@ -5,19 +5,20 @@ from pandas.tseries.offsets import BDay
 
 
 class MyAccountSimulator(AccountSimulator):
-    def __init__(self, start_money, tickers):
+    def __init__(self, start_money, tickers, file_name):
         super(MyAccountSimulator, self).__init__(start_money)
-        self.ticker = tickers
-        self.tickers_to_sell = {}  # ticker -> price
-        self.tickers_to_buy = {}   # ticker -> price
+        self.__tickers = tickers
+        self.__tickers_to_sell = {}  # ticker -> price
+        self.__tickers_to_buy = {}   # ticker -> price
+        self.__file = open(file_name, "w")
 
     def __get_suitable_tickers(self, date, market):
         yesterday = date - BDay(1)
 
-        self.tickers_to_sell = {}
-        self.tickers_to_buy = {}
+        self.__tickers_to_sell = {}
+        self.__tickers_to_buy = {}
 
-        for ticker in self.ticker:
+        for ticker in self.__tickers:
                 yesterday_high = market.get_high_day_price(ticker, yesterday)
                 yesterday_low = market.get_low_day_price(ticker, yesterday)
                 yesterday_open = market.get_open_day_price(ticker, yesterday)
@@ -26,28 +27,28 @@ class MyAccountSimulator(AccountSimulator):
 
                 if (yesterday_open <= 0.2 * range + yesterday_low) and (yesterday_close >= 0.8 * range + yesterday_low): # sell today
                     if self.get_quantity(ticker) > 0:
-                        self.tickers_to_sell[ticker] = yesterday_close
+                        self.__tickers_to_sell[ticker] = yesterday_close
                 elif (yesterday_close <= 0.2 * range + yesterday_low) and (yesterday_open >= 0.8 * range + yesterday_low): # buy today
-                    self.tickers_to_buy[ticker] = yesterday_close
+                    self.__tickers_to_buy[ticker] = yesterday_close
 
     def check_and_buy(self, market):
         tickers_to_del = []
-        for ticker in self.tickers_to_buy.keys():
-            if market.get_current_price(ticker) <= self.tickers_to_buy[ticker]:
+        for ticker in self.__tickers_to_buy.keys():
+            if market.get_current_price(ticker) <= self.__tickers_to_buy[ticker]:
                 self.buy(ticker, 1)
                 tickers_to_del.append(ticker)
         for ticker in tickers_to_del:
-            del self.tickers_to_buy[ticker]
+            del self.__tickers_to_buy[ticker]
 
     def check_and_sell(self, market):
         tickers_to_del = []
-        for ticker in self.tickers_to_sell.keys():
-            if market.get_current_price(ticker) >= self.tickers_to_sell[ticker]:
+        for ticker in self.__tickers_to_sell.keys():
+            if market.get_current_price(ticker) >= self.__tickers_to_sell[ticker]:
                 n = self.get_quantity(ticker)
                 self.sell(ticker, n)
                 tickers_to_del.append(ticker)
         for ticker in tickers_to_del:
-            del self.tickers_to_sell[ticker]
+            del self.__tickers_to_sell[ticker]
 
     # 80-20's algorithm:
     # If ('Open' of the day is in the lowest 20% of the range of this day) and
@@ -67,13 +68,17 @@ class MyAccountSimulator(AccountSimulator):
         self.check_and_sell(market)
 
         if date.hour == 15 and date.minute == 30:
-            self.print_day_results()
+            self.print_day_results(self.__file)
+
+        end_date = self.get_end_date()
+        if date >= end_date:
+            self.__file.close()
 
 
 start_date = datetime(year=2021, month=3, day=4)
 end_date = datetime(year=2021, month=6, day=5)
-file_name = "run_" + start_date.strftime('%Y-%m-%d_%H-%M-%S') + "_" + end_date.strftime('%Y-%m-%d_%H-%M-%S') + "_" + str(datetime.now().strftime('%Y-%m-%d_%H-%M-%S')) + ".txt"
+file_name = "run_80_20" + start_date.strftime('%Y-%m-%d_%H-%M-%S') + "_" + end_date.strftime('%Y-%m-%d_%H-%M-%S') + "_" + str(datetime.now().strftime('%Y-%m-%d_%H-%M-%S')) + ".txt"
 
 tickers = ['IDCC', 'SAP', 'SBUX', 'SGEN']
-ms = MyAccountSimulator(1000, tickers)
-ms.run(start_date, end_date, file_name)
+ms = MyAccountSimulator(1000, tickers, file_name)
+ms.run(start_date, end_date)
