@@ -9,8 +9,8 @@ class AlgorithmMomentumPinball(AccountSimulator):
     def __init__(self, start_money, tickers, file_name):
         super(AlgorithmMomentumPinball, self).__init__(start_money)
         self.__tickers = tickers
-        self.__tickers_to_sell = {}  # ticker -> price
-        self.__tickers_to_buy = {}   # ticker -> price
+        #self.__tickers_to_sell = {}  # ticker -> price
+        #self.__tickers_to_buy = {}   # ticker -> price
         self.__buying_stops = {}  # ticker -> price for buying
         self.__selling_saving_stops = {}  # ticker -> price
         self.__first_hour_min = {}  # ticker -> min price
@@ -18,13 +18,10 @@ class AlgorithmMomentumPinball(AccountSimulator):
 
     # get stocks that complies with algorithm conditions
     def __get_suitable_tickers(self, date, market):
-        self.__tickers_to_sell = {}
-        self.__tickers_to_buy = {}
-
         for ticker in self.__tickers:
-            yesterday_min_1 = date - BDay(2)
+            date_min_7 = date - BDay(7)
             yesterday = date - BDay(1)
-            close = market.get_data(ticker, yesterday_min_1, yesterday, "1d")['Close']
+            close = market.get_data(ticker, date_min_7, yesterday, "1d")['Close']
 
             roc_res = ta.momentum.roc(close, 1, True)
             lbr_rsi = ta.momentum.rsi(roc_res, 3, True)
@@ -32,21 +29,25 @@ class AlgorithmMomentumPinball(AccountSimulator):
             if len(lbr_rsi) == 0:
                 continue
 
-
             # if yesterday we had lbr_rsi < 30 => today we do some buying actions
-            if lbr_rsi[0] < 30:
-                first_hour_range = market.get_data(ticker, yesterday, date, "1h")['Close']  # ???
+            if lbr_rsi[-1] < 30:
+                first_hour_range = market.get_data(ticker, yesterday, date, "1h")['Close']
                 self.__first_hour_min[ticker] = min(first_hour_range)
                 self.__buying_stops[ticker] = max(first_hour_range)
 
 
     def check_and_buy(self, date, market):
+        tickers_to_del = []
         eps = 0.5
-        for tickers in self.__buying_stops:
-            if market.get_price(ticker, date) in range(self.__buying_stops[ticker] - eps, self.__buying_stops[ticker] + eps):
+        for ticker in self.__buying_stops:
+            price = market.get_price(ticker, date)
+            if price > self.__buying_stops[ticker] - eps and price < self.__buying_stops[ticker] + eps:
                 self.buy(ticker, 1)
-                del self.__buying_stops[ticker]
+                tickers_to_del.append(ticker)
                 self.__selling_saving_stops[ticker] = self.__first_hour_min[ticker]
+        # remove tickers that have been already bought
+        for ticker in tickers_to_del:
+            del self.__buying_stops[ticker]
 
 
     def algorithm(self):
@@ -66,6 +67,7 @@ class AlgorithmMomentumPinball(AccountSimulator):
         self.check_and_buy(date, market)
 
         if date.hour == 15 and date.minute == 30:
+            self.__buying_stops = {}
             self.print_day_results(self.__file)
 
         end_date = self.get_end_date()
