@@ -5,6 +5,7 @@ from market import Market, EmptyDataError
 from pandas.tseries.offsets import BDay
 import sys
 import pytz
+import matplotlib.pyplot as plt
 
 
 class SimulatorError(Exception):
@@ -90,6 +91,12 @@ class AccountSimulator:
                 if n != 0:
                     file.write(f"{ticker}: {n}\n")
 
+    def stock_plot(self, ticker, start_date, end_date, interval = "1d"):
+        market = Market(end_date)
+        data = market.get_data(ticker, start_date, end_date, interval)['Close']
+        plt.plot(data)
+        plt.title(ticker + ": " + str(start_date) + " - " + str(end_date) + "; interval " + interval)
+        plt.show()
 
     def __add_to_history(self, ticker, event, n, price):
         new_data = (self.__date, event, n, price)
