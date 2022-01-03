@@ -3,6 +3,7 @@ from datetime import date, timedelta, datetime
 from market import Market
 from pandas.tseries.offsets import BDay
 import ta
+import matplotlib.pyplot as plt
 
 
 class AlgorithmMomentumPinball(AccountSimulator):
@@ -104,6 +105,7 @@ start_date = datetime(year=2021, month=3, day=1)
 end_date = datetime(year=2021, month=6, day=27)
 file_name = "run_momentum-pinball" + start_date.strftime('%Y-%m-%d_%H-%M-%S') + "_" + end_date.strftime('%Y-%m-%d_%H-%M-%S') + "_" + str(datetime.now().strftime('%Y-%m-%d_%H-%M-%S')) + ".txt"
 
-tickers = ['IDCC']#, 'SAP', 'SBUX', 'SGEN']
+tickers = ['IDCC', 'SAP', 'SBUX', 'SGEN']
 ms = AlgorithmMomentumPinball(1000, tickers, file_name)
 ms.run(start_date, end_date)
+ms.history_plot()
