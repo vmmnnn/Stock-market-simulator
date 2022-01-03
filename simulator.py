@@ -99,13 +99,14 @@ class AccountSimulator:
         plt.show()
 
 
-    def ticker_history_plot(self, ticker):
+    def ticker_history_plot(self, ticker, show = False):
         if len(self.__history) == 0 or self.__start_date is None or self.__end_date is None:
             print(f"WARNING: no history available", file=sys.stderr)
             return
         history_data = self.__history[ticker]
         market = Market(self.__end_date)
         data = market.get_data(ticker, self.__start_date, self.__end_date, "1h")['Close']
+        plt.clf()
         plt.plot(data)
 
         buy_dates, buy_prices = self.__get_stock_buy_history(ticker)
@@ -114,15 +115,19 @@ class AccountSimulator:
         sell_dates, sell_prices = self.__get_stock_sell_history(ticker)
         plt.scatter(sell_dates, sell_prices, color='red')
 
-        profit = sum(sell_prices) - sum(buy_prices)
+        title = f"{ticker} history: {self.__start_date} - {self.__end_date}"
+        plt.title(title)
 
-        plt.title(f"{ticker} history: {self.__start_date} - {self.__end_date}; profit = {profit}")
-        plt.show()
+        png_name = f"{ticker}_{self.__start_date.strftime('%Y-%m-%d_%H-%M-%S')}_{self.__end_date.strftime('%Y-%m-%d_%H-%M-%S')}"
+        plt.savefig(png_name + ".png")
+
+        if show:
+            plt.show()
 
 
-    def history_plot(self):
+    def history_plot(self, show = False):
         for ticker in self.__history:
-            self.ticker_history_plot(ticker)
+            self.ticker_history_plot(ticker, show)
 
 
     def __get_stock_buy_history(self, ticker):
