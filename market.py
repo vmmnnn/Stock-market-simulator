@@ -2,6 +2,7 @@ from datetime import date, datetime, timedelta
 import pandas as pd
 import yfinance as yf
 from functools import lru_cache
+from pandas.tseries.offsets import BDay
 
 
 class MarketError(Exception):
@@ -87,28 +88,32 @@ class Market:
 
     def get_high_day_price(self, ticker, date):
         date = datetime(year=date.year, month=date.month, day=date.day)
-        data = self.get_data(ticker, date, date+timedelta(days=1), "1d")
+        yesterday = date - BDay(1)
+        data = self.get_data(ticker, yesterday, date, "1d")
         if data.empty:
             raise EmptyDataError()
         return data['High'].iloc[0]
 
     def get_low_day_price(self, ticker, date):
         date = datetime(year=date.year, month=date.month, day=date.day)
-        data = self.get_data(ticker, date, date+timedelta(days=1), "1d")
+        yesterday = date - BDay(1)
+        data = self.get_data(ticker, yesterday, date, "1d")
         if data.empty:
             raise EmptyDataError()
         return data['Low'].iloc[0]
 
     def get_open_day_price(self, ticker, date):
         date = datetime(year=date.year, month=date.month, day=date.day)
-        data = self.get_data(ticker, date, date+timedelta(days=1), "1d")
+        yesterday = date - BDay(1)
+        data = self.get_data(ticker, yesterday, date, "1d")
         if data.empty:
             raise EmptyDataError()
         return data['Open'].iloc[0]
 
     def get_close_day_price(self, ticker, date):
         date = datetime(year=date.year, month=date.month, day=date.day)
-        data = self.get_data(ticker, date, date+timedelta(days=1), "1d")
+        yesterday = date - BDay(1)
+        data = self.get_data(ticker, yesterday, date, "1d")
         if data.empty:
             raise EmptyDataError()
         return data['Close'].iloc[0]

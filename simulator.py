@@ -17,15 +17,19 @@ class InvalidInterval(SimulatorError):
 
 class AccountSimulator:
     # algorithm will decide what to buy and to sell and when
-    def __init__(self, start_funds):
+    def __init__(self, start_funds, comission = 0):
+        if comission < 0 or comission > 1:
+            raise ValueError("comission must be in range [0.0, 1.0]")
         self.__start_money = start_funds
         self.__money = start_funds
+        self.__comission_percent = comission
         self.__stocks = {}    # ticker -> Stock(ticker)
-        self.__history = {}   # ticker -> [(date, 'buy'/'sell', quantity, price)]
+        self.__history = {}   # ticker -> [(date, 'buy'/'sell', quantity, price, comission)]
         self.__date = None    # will be set during run
         self.__start_date = None
         self.__end_date = None
         self.__market = None  # will be set according to the date
+        self.__total_comission_loss = 0
 
 
     def get_free_money(self):
@@ -41,7 +45,9 @@ class AccountSimulator:
         while price == None:
             date = date - timedelta(1)
             price = self.__market.get_price(ticker, date)
-        return n * price
+        total_price = n * price
+        comission = total_price * self.__comission_percent
+        return total_price - comission
     def get_portfolio_cost(self):
         return self.get_free_money() + self.get_active_money()
     def get_owned_stocks(self):
@@ -60,6 +66,8 @@ class AccountSimulator:
         return self.__end_date
     def get_market(self):
         return self.__market
+    def get_total_comission_loss(self):
+        return self.__total_comission_loss
     def get_quantity(self, ticker):
         if not ticker in self.__stocks.keys():
             return 0
@@ -80,7 +88,7 @@ class AccountSimulator:
         ticker_history = self.__history[ticker]
         file.write(ticker + ":\n")
         for event in ticker_history:
-            file.write(f"{event[0]}: {event[1]} {event[2]} stock(s) for {event[3]:.2f} each\n")
+            file.write(f"{event[0]}: {event[1]} {event[2]} stock(s) for {event[3]:.3f} each with {event[4]:.3f} comission\n")
     def print_stocks(self, file):
         keys = self.__stocks.keys()
         if len(keys) == 0:
@@ -97,7 +105,6 @@ class AccountSimulator:
         plt.plot(data)
         plt.title(ticker + ": " + str(start_date) + " - " + str(end_date) + "; interval " + interval)
         plt.show()
-
 
     def ticker_history_plot(self, ticker, show = False):
         if len(self.__history) == 0 or self.__start_date is None or self.__end_date is None:
@@ -124,11 +131,9 @@ class AccountSimulator:
         if show:
             plt.show()
 
-
     def history_plot(self, show = False):
         for ticker in self.__history:
             self.ticker_history_plot(ticker, show)
-
 
     def __get_stock_buy_history(self, ticker):
         data = self.__history[ticker]
@@ -153,8 +158,8 @@ class AccountSimulator:
         return (dates, prices)
 
 
-    def __add_to_history(self, ticker, event, n, price):
-        new_data = (self.__date, event, n, price)
+    def __add_to_history(self, ticker, event, n, price, comission):
+        new_data = (self.__date, event, n, price, comission)
         if not ticker in self.__history:
             self.__history[ticker] = [new_data]
         else:
@@ -166,21 +171,23 @@ class AccountSimulator:
             return
 
         price = self.__market.get_current_price(ticker)
+        total_price = price * n
+        comission = total_price * self.__comission_percent
 
-        if self.__money < price * n:
-            print(f"WARNING: not enough money to buy {n} {ticker} stocks ${price} each", file=sys.stderr)
+        if self.__money < total_price + comission:
+            print(f"WARNING: not enough money to buy {n} {ticker} stocks ${price} each with total comission {comission}", file=sys.stderr)
             print(f"No {ticker} stocks bought", file=sys.stderr)
             return
 
-        self.__money -= price * n
-        self.__add_to_history(ticker, 'buy', n, price)
+        self.__money -= total_price
+        self.__money -= comission
+        self.__add_to_history(ticker, 'buy', n, price, comission)
         if ticker in self.__stocks.keys():
             self.__stocks[ticker].buy(price, n)
         else:
             stock = Stock(ticker)
             stock.buy(price, n)
             self.__stocks[ticker] = stock
-
 
     def sell(self, ticker, n):
         if n <= 0:
@@ -198,15 +205,17 @@ class AccountSimulator:
             return
 
         price = self.__market.get_current_price(ticker)
+        total_price = price * n
+        comission = total_price * self.__comission_percent
 
-        self.__money += price * n
-        self.__add_to_history(ticker, 'sell', n, price)
+        self.__money += total_price
+        self.__money -= comission
+        self.__add_to_history(ticker, 'sell', n, price, comission)
         self.__stocks[ticker].sell(n)
 
     # working hours 9:30 - 15:59
     def is_working_hour(self, date):
         return not (self.__date.hour >= 16 or self.__date.hour < 9 or (self.__date.hour == 9 and self.__date.minute < 30))
-
 
     def is_working_date(self, date):
         if date.weekday > 4:
