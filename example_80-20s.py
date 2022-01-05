@@ -5,8 +5,8 @@ from pandas.tseries.offsets import BDay
 
 
 class Algorithm8020(AccountSimulator):
-    def __init__(self, start_money, tickers, file_name):
-        super(Algorithm8020, self).__init__(start_money)
+    def __init__(self, start_money, comission, tickers, file_name):
+        super(Algorithm8020, self).__init__(start_money, comission)
         self.__tickers = tickers
         self.__tickers_to_sell = {}  # ticker -> price
         self.__tickers_to_buy = {}   # ticker -> price
@@ -82,8 +82,12 @@ class Algorithm8020(AccountSimulator):
 
 start_date = datetime(year=2021, month=3, day=4)
 end_date = datetime(year=2021, month=6, day=5)
-file_name = "run_80_20" + start_date.strftime('%Y-%m-%d_%H-%M-%S') + "_" + end_date.strftime('%Y-%m-%d_%H-%M-%S') + "_" + str(datetime.now().strftime('%Y-%m-%d_%H-%M-%S')) + ".txt"
+comission_percent = 0.00025
+
+time_range_str = start_date.strftime('%Y-%m-%d_%H-%M-%S') + "_" + end_date.strftime('%Y-%m-%d_%H-%M-%S')
+cur_time_str = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+file_name = "run_80_20_" + time_range_str + "_" + cur_time_str + "_" + str(comission_percent) + "_comission.txt"
 
 tickers = ['IDCC', 'SAP', 'SBUX', 'SGEN']
-ms = Algorithm8020(1000, tickers, file_name)
+ms = Algorithm8020(1000, comission_percent, tickers, file_name)
 ms.run(start_date, end_date)

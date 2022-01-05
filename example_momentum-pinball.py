@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 
 
 class AlgorithmMomentumPinball(AccountSimulator):
-    def __init__(self, start_money, tickers, file_name):
-        super(AlgorithmMomentumPinball, self).__init__(start_money)
+    def __init__(self, start_money, comission, tickers, file_name):
+        super(AlgorithmMomentumPinball, self).__init__(start_money, comission)
         self.__tickers = tickers
         self.__buying_stops = {}  # ticker -> price for buying
         self.__selling_stops = {}  # ticker -> price for selling
@@ -103,9 +103,13 @@ class AlgorithmMomentumPinball(AccountSimulator):
 
 start_date = datetime(year=2021, month=3, day=1)
 end_date = datetime(year=2021, month=6, day=27)
-file_name = "run_momentum-pinball" + start_date.strftime('%Y-%m-%d_%H-%M-%S') + "_" + end_date.strftime('%Y-%m-%d_%H-%M-%S') + "_" + str(datetime.now().strftime('%Y-%m-%d_%H-%M-%S')) + ".txt"
+comission_percent = 0.00025
+
+time_range_str = start_date.strftime('%Y-%m-%d_%H-%M-%S') + "_" + end_date.strftime('%Y-%m-%d_%H-%M-%S')
+cur_time_str = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+file_name = "run_momentum-pinball_" + time_range_str + "_" + cur_time_str + "_" + str(comission_percent) + "_comission.txt"
 
 tickers = ['IDCC', 'SAP', 'SBUX', 'SGEN']
-ms = AlgorithmMomentumPinball(1000, tickers, file_name)
+ms = AlgorithmMomentumPinball(1000, comission_percent, tickers, file_name)
 ms.run(start_date, end_date)
 ms.history_plot()
