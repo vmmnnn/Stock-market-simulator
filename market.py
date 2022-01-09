@@ -79,7 +79,9 @@ class Market:
 
         data = get_data(ticker, interval)
 
-        return data.loc[start_date : end_date]
+        end_date_str = end_date.strftime('%Y-%m-%d')
+        start_date_str = start_date.strftime('%Y-%m-%d')
+        return data.loc[start_date_str : end_date_str]
 
 
     def get_stock_data(self, ticker):
@@ -116,7 +118,7 @@ class Market:
         data = self.get_data(ticker, yesterday, date, "1d")
         if data.empty:
             raise EmptyDataError()
-        return data['Close'].iloc[0]
+        return data['Open'].iloc[0]
 
 
     # returns the price for the datetime requested
@@ -124,8 +126,8 @@ class Market:
         if date > self.__date:
             raise FuturePeriodError()
 
-        if date.hour < 9 or (date.hour == 9 and date.minute == 30):  # returns open time of the day
-            return self.get_open_day_price(ticker, date)
+        if date.hour < 9: #or (date.hour == 9 and date.minute == 30):  # returns close time of the day
+            return self.get_close_day_price(ticker, date)
 
         delta = self.__get_cur_time_diff(date)
         if date.minute == 30 or delta.days > 60:
@@ -140,10 +142,10 @@ class Market:
         if data.empty:
             raise EmptyDataError()
 
-        if not date in data.index:   # holiday, for example on 02.04.21 market finished working earlier
-            return data['Open'].iloc[len(data.index) - 1]
+        if not date in data.index:   # holiday, for example on 02.04.21 market stopped earlier
+            return data['Close'].iloc[len(data.index) - 1]
 
-        return data['Open'].loc[date]
+        return data['Close'].loc[date]
 
 
     # returns the price of the current market date

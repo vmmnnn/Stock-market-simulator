@@ -113,6 +113,7 @@ class AccountSimulator:
         history_data = self.__history[ticker]
         market = Market(self.__end_date)
         data = market.get_data(ticker, self.__start_date, self.__end_date, "1h")['Close']
+
         plt.clf()
         plt.plot(data)
 
@@ -122,10 +123,10 @@ class AccountSimulator:
         sell_dates, sell_prices = self.__get_stock_sell_history(ticker)
         plt.scatter(sell_dates, sell_prices, color='red')
 
-        title = f"{ticker} history: {self.__start_date} - {self.__end_date}"
+        title = f"{ticker} history: {self.__start_date.strftime('%d.%m.%Y')} - {self.__end_date.strftime('%d.%m.%Y')}"
         plt.title(title)
 
-        png_name = f"{ticker}_{self.__start_date.strftime('%Y-%m-%d_%H-%M-%S')}_{self.__end_date.strftime('%Y-%m-%d_%H-%M-%S')}"
+        png_name = f"{ticker}_{self.__start_date.strftime('%d-%m-%Y')}_{self.__end_date.strftime('%d-%m-%Y')}"
         plt.savefig(png_name + ".png")
 
         if show:
@@ -267,13 +268,13 @@ class AccountSimulator:
 
     # run hours from start_date up to end_date exclusively
     def run(self, start_date, end_date):
-        if end_date <= start_date:
+        if end_date < start_date:
             raise InvalidInterval()
 
         self.__date = start_date
         self.__start_date = start_date
         self.__end_date = end_date
-        while self.__date < end_date:
+        while self.__date <= end_date:
             self.__upd_date()
             self.__market = Market(self.__date)
             try:
