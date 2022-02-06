@@ -142,8 +142,12 @@ class Market:
         if data.empty:
             raise EmptyDataError()
 
+        #print(data)
         if not date in data.index:   # holiday, for example on 02.04.21 market stopped earlier
-            return data['Close'].iloc[len(data.index) - 1]
+            date1 = date
+            while (not date1 in data.index):
+                date1 = date1 - timedelta(hours=0, minutes=30) #BDay(1)
+            return data['Close'].loc[date1]
 
         return data['Close'].loc[date]
 

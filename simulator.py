@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 import yfinance as yf
 from stock import Stock
 from market import Market, EmptyDataError
@@ -114,8 +114,11 @@ class AccountSimulator:
         market = Market(self.__end_date)
         data = market.get_data(ticker, self.__start_date, self.__end_date, "1h")['Close']
 
+        data_plot = list(data)
+        indices_plot = [datetime(date.year, date.month, date.day, date.hour, date.minute, date.second) for date in list(data.index)]
+
         plt.clf()
-        plt.plot(data)
+        plt.plot(indices_plot, data_plot)
 
         buy_dates, buy_prices = self.__get_stock_buy_history(ticker)
         plt.scatter(buy_dates, buy_prices, color='green')
@@ -141,7 +144,7 @@ class AccountSimulator:
         dates = []
         prices = []
         for tup in data:
-            # tup: (date, 'buy'/'sell', quantity, price)
+            # tup: (date, 'buy'/'sell', quantity, price, comission)
             if tup[1] == 'buy':
                 dates.append(tup[0])
                 prices.append(tup[3])
